@@ -1,0 +1,11 @@
+---
+DEFAULT_PACKAGES:
+  - sudo
+  # - ufw
+  # - fail2ban
+  - unattended-upgrades
+  # - logwatch
+  # - git-core
+  - vim
+  - tmux
+

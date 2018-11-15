@@ -1,0 +1,15 @@
+# certifi==2018.8.24
+# cftime==1.0.0b1
+# mkl-fft==1.0.6
+# mkl-random==1.0.1
+psycopg2-binary==2.7.5
+boto3==1.9.24
+netCDF4==1.4.1
+numpy==1.15.2
+pandas==0.23.4
+python-dateutil==2.7.3
+pytz==2018.5
+scipy==1.1.0
+six==1.11.0
+xarray==0.10.9
+SQLAlchemy==1.2.12

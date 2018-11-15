@@ -1,0 +1,74 @@
+---
+
+- name: miniconda installer is downloaded
+  get_url:
+    url="https://repo.continuum.io/miniconda/{{ miniconda_installer }}"
+    dest="/tmp/{{ miniconda_installer }}"
+    checksum="{{ miniconda_installer_checksum }}"
+    force={{ 'yes' if miniconda_installer_checksum == '' else 'no' }}
+    mode=0755
+
+- name: directory {{ miniconda_prefix | dirname }} exists
+  file:
+    path="{{ miniconda_prefix | dirname }}"
+    state=directory
+    follow=yes
+
+- name: tar is installed
+  package:
+    name=tar
+    state=present
+  when: miniconda_manage_dependencies
+
+- name: bzip2 is installed
+  package:
+    name=bzip2
+    state=present
+  when: miniconda_manage_dependencies
+
+- name: miniconda is installed
+  command:
+    '/bin/bash "/tmp/{{ miniconda_installer}}" -b -p "{{ miniconda_prefix }}"'
+  args:
+    creates: "{{ miniconda_prefix }}"
+
+- name: miniconda is up-to-date
+  command: '"{{ miniconda_prefix }}/bin/conda" update conda -y -q'
+  register: miniconda_update
+  when: miniconda_update_conda
+  changed_when: '"All requested packages already installed" in miniconda_update'
+
+- name: conda environment file /tmp/{{ miniconda_env.name }}-environment.yml is created
+  copy:
+    content="{{ miniconda_env | to_yaml(default_flow_style=False) }}"
+    dest="/tmp/{{ miniconda_env.name }}-environment.yml"
+  when: miniconda_env != ''
+
+- include: environment.yml
+  when: miniconda_env != ''
+
+# - name: activate env
+#   raw: source /opt/miniconda/bin/activate mogreps
+
+- name: update pip
+  raw: /opt/miniconda/envs/mogreps/bin/pip install --upgrade pip
+
+- name: update conda
+  raw: /opt/miniconda/bin/conda update conda -y -q
+
+- name: install iris
+  raw: /opt/miniconda/bin/conda install -c conda-forge iris -n mogreps -y -q
+
+- name: install sqlalchemy, psycopg2
+  raw: /opt/miniconda/bin/conda install sqlalchemy psycopg2 -n mogreps -y -q
+
+- name: install boto3
+  raw: /opt/miniconda/bin/conda install boto3 -n mogreps -y -q
+
+- name: fix ownership
+  raw: sudo chown -R amartin:amartin /opt
+
+- name: fix permissions
+  raw: sudo chmod 0774 -R /opt
+
+

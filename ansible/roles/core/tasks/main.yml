@@ -1,0 +1,125 @@
+---
+
+# - include_vars: vars/main.yml
+- include_vars: vars/setup.yml
+- include_vars: vars/default_packages.yml
+
+- apt_repository:
+    repo: deb-src http://ftp.debian.org/debian stretch main contrib non-free
+    state: present
+
+- apt_repository:
+    repo: deb-src http://ftp.debian.org/debian stretch-updates main contrib non-free
+    state: present
+
+- apt_repository:
+    repo: deb-src http://security.debian.org stretch/updates main contrib non-free
+    state: present
+
+- name: update APT package cache
+  apt: update_cache=yes cache_valid_time=3600
+
+- name: upgrade APT to the latest packages
+  apt: upgrade=dist
+
+- name: Install git
+  apt: state=present name=git-core
+
+# - name: Get dotfiles
+#   git: repo=https://bitbucket.org/tronflux/dotfiles
+#     dest=/opt/dotfiles
+#     version=master
+#     force=yes
+
+- name: install required packages
+  apt: state=present pkg={{ item }}
+  with_items: "{{ DEFAULT_PACKAGES }}"
+
+- name: Create Group
+  group: name=devs state=present
+
+- name: Create Admin User
+  user: name={{ ADMIN_USERNAME }} comment={{ ADMIN_COMMENT }} home=/home/{{ ADMIN_USERNAME }} uid = {{ ADMIN_UID }} groups="sudo,devs" state=present shell=/bin/bash
+
+- name: add authorized keys for admin user
+  authorized_key: user={{ ADMIN_USERNAME }} key="{{ lookup('file', item) }}"
+  with_fileglob: "{{ PUBLIC_KEYS }}"
+
+- name: Allow 'sudo' group to have passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^%sudo'
+    line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+
+- name: Adjust APT update intervals
+  copy: src=apt_periodic dest=/etc/apt/apt.conf.d/10periodic
+
+# - name: setup ufw
+#   ufw: state=enabled policy=deny
+
+# - name: allow ssh traffic
+#   ufw: rule=allow port=22 proto=tcp
+
+# - name: allow http traffic
+#   ufw: rule=allow port=80 proto=tcp
+
+# - name: allow vpn traffic
+#   ufw: rule=allow port=1194 proto=tcp
+
+# - name: allow vpn network traffic
+#   ufw: rule=allow src=10.90.10.0/24
+
+# - name: allow pyramid traffic
+#   ufw: rule=allow port=6543 proto=tcp
+
+# - name: allow postgres traffic
+#   ufw: rule=allow port=5432 proto=tcp
+
+- name: Disallow password authentication
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    state: present
+    regexp: "^PasswordAuthentication"
+    line: "PasswordAuthentication no"
+
+- name: allow agent forwarding
+  lineinfile:
+    line: "AllowAgentForwarding yes"
+    dest: /etc/ssh/sshd_config
+    state: present
+    regexp: "^AllowAgentForwarding"
+
+- name: Disallow root SSH access
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    state: present
+    regexp: "^PermitRootLogin"
+    line: "PermitRootLogin no"
+
+  notify: restart sshd
+
+- name: restart sshd
+  service: name=sshd state=restarted
+
+
+# should all hooks for monitoring and logging here
+# sentry I think?
+
+# need to check this out
+# - name: Set up Postfix to relay mail
+#   debconf: name=postfix
+#            question='{{ item.question }}'
+#            value='{{ item.value }}'
+#            vtype='{{ item.vtype }}'
+#   with_items:
+#     - { question: 'postfix/mailname', value: '{{ ansible_fqdn }}', vtype: 'string' }
+#     - { question: 'postfix/main_mailer_type', value: 'Internet Site', vtype: 'string' }
+
+# and also this
+# - name: Email log summary daily
+#   lineinfile: dest=/etc/cron.daily/00logwatch
+#               regexp="^/usr/sbin/logwatch"
+#               line="/usr/sbin/logwatch --output mail --mailto {{ UBUNTU_COMMON_LOGWATCH_EMAIL }} --detail high"
+#               state=present create=yes
+

@@ -1,0 +1,13 @@
+---
+- hosts: aws_e_1
+  become: yes
+  become_user: root
+  roles:
+    - role: mogreps
+      miniconda_python: 3.6
+      miniconda_prefix: /opt/miniconda
+      miniconda_env:
+        name: mogreps
+        dependencies:
+          - python=3.6
+

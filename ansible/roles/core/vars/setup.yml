@@ -1,0 +1,9 @@
+---
+ADMIN_COMMENT: Andrew Martin
+ADMIN_UID: 1001
+ADMIN_FNAME: andrew
+ADMIN_USERNAME: amartin
+
+PUBLIC_KEYS:
+  # - /opt/dotfiles/public_keys/*.pub
+  /Users/drew/projects/ansible/public_keys/andrew/*.pub

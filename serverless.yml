@@ -1,0 +1,173 @@
+# Welcome to Serverless!
+#
+# This file is the main config file for your service.
+# It's very minimal at this point and uses default values.
+# You can always add more config options for more control.
+# We've included some commented out config examples here.
+# Just uncomment any of them to get that config option.
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+#
+# Happy Coding!
+
+service: iris-test # NOTE: update this with your service name
+
+# You can pin your service to only deploy with a specific Serverless version
+# Check out our docs for more details
+# frameworkVersion: "=X.X.X"
+
+provider:
+  name: aws
+  runtime: python3.6
+  timeout: 180
+  vpc:
+    securityGroupIds:
+      - sg-0494a30f14e53aff2
+    subnetIds:
+      - subnet-0c8db0e512bda5b7e
+      - subnet-09ff86c03baa7f8e2
+      - subnet-0b0138400157da16e
+
+# you can overwrite defaults here
+  stage: dev
+  region: us-east-1
+
+# you can add statements to the Lambda function's IAM Role here
+#  iamRoleStatements:
+#    - Effect: "Allow"
+#      Action:
+#        - "s3:ListBucket"
+#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
+#    - Effect: "Allow"
+#      Action:
+#        - "s3:PutObject"
+#      Resource:
+#        Fn::Join:
+#          - ""
+#          - - "arn:aws:s3:::"
+#            - "Ref" : "ServerlessDeploymentBucket"
+#            - "/*"
+
+
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action: 'ssm:GetParameter'
+      Resource:
+        - 'arn:aws:ssm:us-east-1:332774875883:parameter/postgresUser'
+        - 'arn:aws:ssm:us-east-1:332774875883:parameter/postgresPass'
+
+    - Effect: 'Allow'
+      Action: 'kms:Decrypt'
+      Resource:
+        - 'arn:aws:kms:us-east-1:332774875883:key/8e84ec79-d21f-48b0-850f-5ee327623838'
+
+    - Effect: 'Allow'
+      Action: 's3:*'
+      Resource:
+        - 'arn:aws:s3:::mogreps-sls-archive/*'
+        - 'arn:aws:s3:::mogreps-sls-inbound/*'
+
+
+# you can define service wide environment variables here
+#  environment:
+#    variable1: value1
+
+# you can add packaging information here
+package:
+  exclude:
+    - node_modules/**
+    - .idea/**
+    - .requirements/**
+    - env/**
+    - README.md
+    - package.json
+    - package-lock.json
+    - requirements.txt
+    - ansible/**
+    - diagrams/**
+    - dims_files/**
+    - misc/**
+    - raw_data/**
+    - .serverless/**
+    - test.csv
+    - prods_op_mogreps-g_20161231_18_22_003.nc
+
+
+functions:
+  iris:
+    handler: handler.main
+    events:
+      - s3: mogreps-sls-inbound
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    useDownloadCache: true
+    useStaticCache: true
+
+#    The following are a few example events you can configure
+#    NOTE: Please make sure to change your handler code to work with those events
+#    Check the event documentation for details
+#    events:
+#      - http:
+#          path: users/create
+#          method: get
+#      - s3: ${env:BUCKET}
+#      - schedule: rate(10 minutes)
+#      - sns: greeter-topic
+#      - stream: arn:aws:dynamodb:region:XXXXXX:table/foo/stream/1970-01-01T00:00:00.000
+#      - alexaSkill: amzn1.ask.skill.xx-xx-xx-xx
+#      - alexaSmartHome: amzn1.ask.skill.xx-xx-xx-xx
+#      - iot:
+#          sql: "SELECT * FROM 'some_topic'"
+#      - cloudwatchEvent:
+#          event:
+#            source:
+#              - "aws.ec2"
+#            detail-type:
+#              - "EC2 Instance State-change Notification"
+#            detail:
+#              state:
+#                - pending
+#      - cloudwatchLog: '/aws/lambda/hello'
+#      - cognitoUserPool:
+#          pool: MyUserPool
+#          trigger: PreSignUp
+
+#    Define function environment variables here
+#    environment:
+#      variable2: value2
+
+# you can add CloudFormation resource templates here
+resources:
+  Resources:
+    ArchiveBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: mogreps-sls-archive
+
+    AWSLambdaVPCAccessExecutionRole:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        Description: "Creating policy for vpc connetion."
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            -
+              Effect: "Allow"
+              Action:
+                - "ec2:CreateNetworkInterface"
+                - "ec2:DescribeNetworkInterfaces"
+                - "ec2:DeleteNetworkInterface"
+              Resource: "*"
+        # Roles:
+        #   -
+        #     Ref: "IamRoleLambdaExecution"
+#  Outputs:
+#     NewOutput:
+#       Description: "Description for the output"
+#       Value: "Some output value"
